@@ -1,11 +1,15 @@
 import datetime
-from base_scrapers import SeleniumBase
-from errors import InvalidQueryError
+from scrapers.base_scrapers import SeleniumBase
+from scrapers.errors import InvalidQueryError
 
 class ConnecticutCivil(SeleniumBase):
 
-    def __init__(self, exec_path=None):
-        super(SeleniumBase, self).__init__(exec_path=exec_path)
+    BASE_URL = "http://civilinquiry.jud.ct.gov/CourtEventsSearchByDate.aspx"
+
+    def _validate_date(self, date_type):
+        super()._validate_date(date_type)
+        if date_type < datetime.date.today():
+            raise InvalidQueryError("The date you enter must occur today or in the future")
 
     def get_court_cases(self, case_date):
         """Returns a list of dictionaries of all of the court cases occuring on a given day
