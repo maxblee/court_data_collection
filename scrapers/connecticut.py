@@ -11,6 +11,9 @@ class ConnecticutCivil(SeleniumBase):
         if date_type < datetime.date.today():
             raise InvalidQueryError("The date you enter must occur today or in the future")
 
+    def _clear_date_form(self):
+        self.driver.find_element_by_id("ctl00_ContentPlaceHolder1_txtDate").clear()
+
     def get_court_cases(self, case_date):
         """Returns a list of dictionaries of all of the court cases occuring on a given day
 
@@ -24,8 +27,12 @@ class ConnecticutCivil(SeleniumBase):
         InvalidQueryError
             If the date you present is in the past (or isn't a datetime)
         """
-        if not isinstance(case_date, datetime.date):
-            raise TypeError("The parameter of get_court_cases must be a valid date (i.e. datetime.date object)")
-        if datetime.date.today() > case_date:
-            raise InvalidQueryError("The date you enter needs to be on today's date or in the future")
-        # TODO: Finish this
+        str_date = case_date.strftime("%m/%d/%Y")
+        self.driver.find_element_by_id("ctl00_ContentPlaceHolder1_txtDate").send_keys(str_date)
+        # TODO: Handle other filtering
+        self.driver.find_element_by_id("ctl00_ContentPlaceHolder1_btnSubmit").click()
+        # TODO: Handle switching to other court cases, handling pagination
+        self._handle_case_pages()
+
+    def _handle_case_pages(self):
+        pass
