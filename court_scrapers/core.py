@@ -1,5 +1,5 @@
 import datetime
-from scrapers.errors import InvalidQueryError
+from court_scrapers.errors import InvalidQueryError
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
@@ -7,7 +7,10 @@ class SeleniumBase:
 
     BASE_URL = None
 
-    def __init__(self, start_url=None, headless=True, exec_path=None):
+    def __init__(self, processed_cases=[], start_url=None, headless=True, exec_path=None):
+        # TODO: Make this more robust, so it supports case loads > RAM
+        # (probably by using SQL)
+        self.cases = processed_cases
         self.BASE_URL = start_url if start_url is not None else self.BASE_URL
         if self.BASE_URL is None:
             raise ValueError("You must have a starting URL with the attribute BASE_URL")
