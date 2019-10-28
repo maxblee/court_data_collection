@@ -1,4 +1,6 @@
 import datetime
+import time
+import random
 from court_scrapers.core import SeleniumBase
 from court_scrapers.errors import InvalidQueryError
 
@@ -17,6 +19,7 @@ class ConnecticutCivil(SeleniumBase):
 
     def _submit_date_query(self, case_date, case_category="civil"):
         self._validate_date(case_date)
+        self._clear_date_form() # just to ensure this is blank before starting
         str_date = case_date.strftime("%m/%d/%Y")
         self.driver.find_element_by_id("ctl00_ContentPlaceHolder1_txtDate").send_keys(str_date)
         if case_category.lower().strip() != "civil":
@@ -31,6 +34,44 @@ class ConnecticutCivil(SeleniumBase):
         # (and need something robust but still user-friendly)
         self.driver.find_element_by_id("ctl00_ContentPlaceHolder1_btnSubmit").click()
 
+    def _get_case_table(self):
+        return self.driver.find_element_by_id("ctl00_ContentPlaceHolder1_gvCourtEventsResults")
+
+    def _get_pagination(self):
+        table = self._get_case_table()
+        return table.find_element_by_css_selector(
+            "tr.grdBorder"
+            ).find_element_by_tag_name(
+                "table"
+            ).find_elements_by_tag_name("td")
+
+    def _get_docket_numbers(self):
+        docket_nums = set()
+        num_pages = len(self._get_pagination())
+        for i in range(num_pages):
+            table = self._get_case_table().find_element_by_tag_name("tbody")
+            docket_nums |= set(
+                (elem.find_element_by_tag_name("a").text 
+                # TODO: Handle single page (pagination doesn't exist there)
+                for elem in table.find_elements_by_css_selector("tr.grdRow"))
+                )
+            docket_nums |= set(
+                (elem.find_element_by_tag_name("a").text 
+                for elem in table.find_elements_by_css_selector("tr.grdRowAlt"))
+                )
+            pagination = self._get_pagination()
+            # TODO: Handle/check for empty case list
+            if len(pagination) == i + 1:
+                break
+            pagination[i + 1].click()
+        return docket_nums
+
+    def _get_case_detail(self, case):
+        case_url = "http://civilinquiry.jud.ct.gov/LoadDocket.aspx?DocketNo={}".format(case)
+        self.driver.get(case_url)
+        case_info = { "DocketNo": case }
+        # TODO: Flush this whole thing out
+        return case_info
 
     def get_court_cases(self, case_date, case_category="civil"):
         """Returns a list of dictionaries of all of the court cases occuring on a given day
@@ -45,34 +86,17 @@ class ConnecticutCivil(SeleniumBase):
         InvalidQueryError
             If the date you present is in the past (or isn't a datetime)
         """
+        cases = []
         self._submit_date_query(case_date, case_category)
-        return self._get_case_data()
-
-    def _get_case_data(self):
-        case_data = []
-        current_page = 1
-        has_next_page = True
-        while has_next_page:
-            # TODO: Get data
-            next_page = self._get_next_page(current_page)
-            current_page+=1
-            if next_page is None:
-                has_next_page = False
-            else:
-                next_page.click()
-        return case_data
-
-
-    def _get_next_page(self, current_page=1):   # current_page is 1-indexed
-        table = self.driver.find_element_by_id("ctl00_ContentPlaceHolder1_gvCourtEventsResults")
-        pages = table.find_element_by_css_selector(
-            "tr.grdBorder"
-            ).find_element_by_tag_name(
-                "table"
-            ).find_elements_by_tag_name("td")
-        if current_page == len(pages):  # if you're on the last page
-            return None
-        return pages[current_page]
+        try:
+            docket_nums = self._get_docket_numbers()
+        except Exception as e:
+            print(e)
+            breakpoint()
+        for case in docket_nums:
+            cases.append(self._get_case_detail(case))
+            time.sleep(random.random() * 4) # be a *little* bit nice on their servers
+        return cases
         
                 
 
