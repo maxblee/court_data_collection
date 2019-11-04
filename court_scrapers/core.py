@@ -1,7 +1,13 @@
 import datetime
+import collections
 from court_scrapers.errors import InvalidQueryError
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
+
+CaseInfo = collections.namedtuple("CaseInfo", [
+    "case_num", "case_type", "date_filed", "plaintiff_parties", "plaintiff_attnys",
+    "def_parties", "def_attnys", "court_location"
+])
 
 class SeleniumBase:
 

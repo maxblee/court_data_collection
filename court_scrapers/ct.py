@@ -1,7 +1,8 @@
 import datetime
 import time
 import random
-from court_scrapers.core import SeleniumBase
+from bs4 import BeautifulSoup
+from court_scrapers.core import CaseInfo, SeleniumBase
 from court_scrapers.errors import InvalidQueryError
 
 class ConnecticutCivil(SeleniumBase):
@@ -39,6 +40,10 @@ class ConnecticutCivil(SeleniumBase):
 
     def _get_pagination(self):
         table = self._get_case_table()
+        # TODO: Handle single page (pagination doesn't exist there)
+        # Something as simple as 
+        # elem = table.find_element_by_css_selector("tr.grdBorder")
+        # return [None] if elem is None else elem.find_element_by_tag_name("table").find_elements_by_tag_name("td")
         return table.find_element_by_css_selector(
             "tr.grdBorder"
             ).find_element_by_tag_name(
@@ -52,7 +57,6 @@ class ConnecticutCivil(SeleniumBase):
             table = self._get_case_table().find_element_by_tag_name("tbody")
             docket_nums |= set(
                 (elem.find_element_by_tag_name("a").text 
-                # TODO: Handle single page (pagination doesn't exist there)
                 for elem in table.find_elements_by_css_selector("tr.grdRow"))
                 )
             docket_nums |= set(
@@ -69,9 +73,29 @@ class ConnecticutCivil(SeleniumBase):
     def _get_case_detail(self, case):
         case_url = "http://civilinquiry.jud.ct.gov/LoadDocket.aspx?DocketNo={}".format(case)
         self.driver.get(case_url)
-        case_info = { "DocketNo": case }
-        # TODO: Flush this whole thing out
-        return case_info
+        case_type = self.driver.find_element_by_id(
+            "ctl00_ContentPlaceHolder1_CaseDetailBasicInfo1_lblBasicCaseType"
+            ).text.strip()
+        # TODO: Parties
+        date_file_html = self.driver.find_element_by_id(
+            "ctl00_ContentPlaceHolder1_CaseDetailHeader1_lblFileDate"
+        ).get_attribute("outerHTML")
+        date_filed = BeautifulSoup(
+            date_file_html, "html.parser"
+        ).span.find(text=True, recursive=False).strip()
+        court_location = self.driver.find_element_by_id(
+            "ctl00_ContentPlaceHolder1_CaseDetailBasicInfo1_lblBasicLocation"
+        ).text.strip()
+        return CaseInfo(
+            case_num=case, 
+            case_type=case_type,
+            date_filed=datetime.datetime.strptime(date_filed, "%m/%d/%Y").date(), 
+            plaintiff_parties=[],
+            plaintiff_attnys=[],
+            def_parties=[],
+            def_attnys=[],
+            court_location=court_location
+            )
 
     def get_court_cases(self, case_date, case_category="civil"):
         """Returns a list of dictionaries of all of the court cases occuring on a given day
@@ -95,7 +119,7 @@ class ConnecticutCivil(SeleniumBase):
             breakpoint()
         for case in docket_nums:
             cases.append(self._get_case_detail(case))
-            time.sleep(random.random() * 4) # be a *little* bit nice on their servers
+            time.sleep(random.random() * 2) # be a *little* bit nice on their servers
         return cases
         
                 
