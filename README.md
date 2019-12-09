@@ -15,53 +15,58 @@ and what information we're collecting using individual scrapers.
 
 ## Structure
 
-All of these scrapers are designed to be fairly easy to use from the perspective of an end-user.
+### API
 
-All of the scrapers support context managers, in order to close Selenium's webdriver at the end
-of a successful or failing run (without having to deal with `try/except/finally` logic). And the general
-syntax for all of the requests should be the same:
+All of these scrapers are designed to be fairly easy to use from the perspective of an end-user. All of the scrapers support the same basic
+syntax using Python's `with` syntax.
+
+In order to get all cases occurring on a single date, simply type:
 
 ```python
 from datetime import date
 from court_scrapers.<2-digit state abbreviation> import <Scraper Name>
 
-start_date = date(Integer Year, Integer Month, Integer Day)
-end_date = date(Integer Year, Integer Month, Integer Day)
+date_query = date(year, month, day)
 
 with <Scraper Name> as court_cases:
-    date_query_results = court_cases.get_cases(start_date, end_date)
+    query_results = court_cases.get_court_cases(date_query)
+```
+
+Getting all cases in a date range is similarly easy:
+
+```python
+with <Scraper Name> as court_cases:
+    query_results = court_cases.collect_cases(start_date, end_date)
+```
+
+### Developer Guide
+
+From the perspective of a developer, it's a little bit more complicated, but not too much. The scrapers generally interact with an abstract base class, `SeleniumBase`. That base class has a number of convenience methods, like simple date validation, designed to reduce the amount of code developers writing future scrapers will need to write. 
+
+However, in some cases, you might need to override those methods. So keep in mind that the base class does default to validating date queries and to compiling cases using `collect_cases` by iterating over `get_court_cases`.
+
+Additionally, cases should generally contain the followinng fields:
+
+```python
+CASE_FIELDS = [
+    "case_num", "case_type", "date_filed", "parties", "court_location"
+]
 ```
 
 ## States
 
 ### Connecticut
 
-#### Courts Supported
-Connecticut currently only has support in its scrapers for Civil and Family courts.
+`ConnecticutCivil`
 
-In order to query Connecticut's Civil cases, type:
+- Courts supported: Civil court
+- Date queries only work on dates occurring on a given date or in the future. The Connecticut court search system for civil court does not allow you to query dates occurring in the past. For this reason, people considering using this tool should likely consider running only `get_court_cases` and using a scheduler (like a cron job on an EC2 instance) to update the cases.
 
-```python
-from court_scrapers.ct import ConnecticutCivil
-import datetime
+## Steps Forward
 
-with ConnecticutCivil() as ct_cases:
-    ct_results = ct_cases.get_court_cases(datetime.date.today())
-```
+From here, there are a few places where I really need to improve the script. 
 
-For the family courts, you only have to make a minor change:
-```python
-...
-with ConnecticutCivil() as ct_cases:
-    ct_results = ct_cases.get_court_cases(datetime.date.today(), case_category="family")
-```
-
-#### Limitations
-The date querying support for Connecticut's Civil and Family courts is limited exclusively
-to court cases on a given date or in the future. Because of that, you cannot use this tool to query
-dates that have previously occurred. For practical purposes, this means that you'll probably want to
-run this query using cron in a cloud-based computing platform (like an EC2 instance).
-
-The other option for collecting data requires making a request directly to the court, though, so this
-at least provides a decent mechanism for keeping an updated log of court cases in the state.
+1. First of all, the error handling on this should be improved, particularly in how it handles duplicate cases. Right now, I'm using sets to reduce the number of duplicate rows, but without even handling whitespace trimming, the accury of these deduplication efforts is pretty limited.
+2. This tool should ideally enable people to update based on a running database of collected court cases (especially since Conntecticut does not allow you to query historic civil cases). 
+3. Finally, we need to add more states into this database. I know for a fact that Virginia has a) a unified court system and b) a court system with date fields that would allow you to write similar scrapers. I imagine other states do as well.
 

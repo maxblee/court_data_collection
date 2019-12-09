@@ -1,22 +1,21 @@
+import contextlib
 import datetime
 import collections
 from court_scrapers.errors import InvalidQueryError
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
-CaseInfo = collections.namedtuple("CaseInfo", [
-    "case_num", "case_type", "date_filed", "plaintiff_parties", "plaintiff_attnys",
-    "def_parties", "def_attnys", "court_location"
-])
+CASE_FIELDS = [
+    "case_num", "case_type", "date_filed", "parties", "court_location"
+]
 
-class SeleniumBase:
+CaseInfo = collections.namedtuple("CaseInfo", CASE_FIELDS)
+
+class SeleniumBase(object):
 
     BASE_URL = None
 
-    def __init__(self, processed_cases=[], start_url=None, headless=True, exec_path=None):
-        # TODO: Make this more robust, so it supports case loads > RAM
-        # (probably by using SQL)
-        self.cases = processed_cases
+    def __init__(self, start_url=None, headless=True, exec_path=None):
         self.BASE_URL = start_url if start_url is not None else self.BASE_URL
         if self.BASE_URL is None:
             raise ValueError("You must have a starting URL with the attribute BASE_URL")
@@ -45,3 +44,20 @@ class SeleniumBase:
         self._validate_date(end_date)
         if not start_date <= end_date:
             raise InvalidQueryError("The start date must come before the end date. {} comes after {}".format(start_date, end_date))
+
+    def __get_date_range(self, start_date, end_date):
+        while start_date <= end_date:
+            start_date += datetime.timedelta(days=1)
+            yield start_date
+
+    def get_court_cases(self, date_type):
+        """Returns all of the court cases that had hearings on a given day."""
+        raise NotImplementedError
+
+    def collect_cases(self, start_date, end_date):
+        """Collects every court case occuring within a given date range."""
+        self._validate_date_range(start_date, end_date)
+        cases = set()
+        for weekday in self.__get_date_range(start_date, end_date):
+            cases |= self.get_court_cases(weekday)
+        return cases
