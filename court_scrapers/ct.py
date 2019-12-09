@@ -87,7 +87,6 @@ class ConnecticutCivil(SeleniumBase):
         if next_page is not None:
             pagination[next_page].click()
             self._get_docket_numbers(current_docket_nums, current_page=current_page+1)
-            pagination = self._get_pagination()
         return current_docket_nums
 
     def _get_parties(self):
@@ -146,7 +145,7 @@ class ConnecticutCivil(SeleniumBase):
 
     def _query_has_no_events(self):
         lbl_error = self.driver.find_elements_by_id("ctl00_ContentPlaceHolder1_lblError")
-        return len(lbl_error) > 0 and lbl_error[0].text != ""
+        return len(lbl_error) > 0 and "".join([lbl.text for lbl in lbl_error]) != ""
 
     def get_court_cases(self, case_date, case_category="civil"):
         """Returns a list of dictionaries of all of the court cases occuring on a given day

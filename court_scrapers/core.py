@@ -41,12 +41,16 @@ class SeleniumBase(object):
         """Determines whether a date range is valid (i.e. if the start_date is before the end_date and both are dates)"""
         self._validate_date(start_date)
         self._validate_date(end_date)
-        if not start_date <= end_date:
+        if end_date > start_date:
             raise InvalidQueryError("The start date must come before the end date. {} comes after {}".format(start_date, end_date))
 
     def __get_date_range(self, start_date, end_date):
         while start_date <= end_date:
             start_date += datetime.timedelta(days=1)
+            # This is probably useful for efficiency?
+            # But if courts ever have hearings on weekends should be removed
+            if start_date.weekday() >= 5:   # if on weekend
+                continue
             yield start_date
 
     def get_court_cases(self, date_type):

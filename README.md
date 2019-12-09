@@ -67,6 +67,13 @@ CASE_FIELDS = [
 ]
 ```
 
+Files containing state scrapers should named by their lowercase two-letter state abbreviation (e.g. `ct.py`). And the scrapers themselves should be given predictable names, containing a state name and a description of the type of court. However, there aren't great ways of standardizing this since states have differing court structures.
+
+#### Testing
+
+I use `pytest` for testing on these projects. Tests requiring scraping
+should be left in their own files, one for each state (e.g. `tests/test_ct.py`). This allows developers to easily run tests for one state or to run generalized tests that run faster than fully fledged scraping jobs.
+
 ## States
 
 ### Connecticut

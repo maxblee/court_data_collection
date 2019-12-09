@@ -36,4 +36,6 @@ def test_goes_to_all_pages():
                 break
     assert math.ceil(num_expected / 200) == current_page
 
+# TODO: handle single-page pagination on docket collection
+# (The problem with this is the constraints of ct make it hard to do reliably)
 
