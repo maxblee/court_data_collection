@@ -1,4 +1,3 @@
-import contextlib
 import datetime
 import collections
 from court_scrapers.errors import InvalidQueryError

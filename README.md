@@ -9,9 +9,23 @@ and what information we're collecting using individual scrapers.
 
 ## Table of Contents
 
+- **[Installation](#installation)**
 - **[Structure](#structure)**
 - **[States](#states)**
     - **[Connecticut](#connecticut)**
+- **[Steps Forward](#steps-forward)**
+
+## Installation
+
+In order to run this program, you will need Firefox Geckodriver installed, ideally in its default location (e.g. `/usr/bin/geckodriver`). Instructions are available [here](https://github.com/mozilla/geckodriver).
+
+To install the other requirements, simply type
+
+```shell
+pipenv install
+```
+
+at the root of this directory.
 
 ## Structure
 
